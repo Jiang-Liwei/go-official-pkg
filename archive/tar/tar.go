@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"bytes"
 	"fmt"
 	"os"
 )
@@ -48,5 +49,42 @@ func main() {
 	if fileInfo == nil {
 		return
 	}
-	fmt.Println(fileInfo.Name())
+	fmt.Println("FileInfo 的结果：", fileInfo.Name())
+
+	// NewReader创建一个从buf读取的Reader。
+	var buf bytes.Buffer
+	reader := tar.NewReader(&buf)
+
+	next, err := reader.Next()
+	fmt.Println("Next 的结果：", next)
+
+	tarCreate, err := os.Create("./one.tar")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer func(tar *os.File) {
+		_ = tarCreate.Close()
+	}(tarCreate)
+
+	tw := tar.NewWriter(tarCreate)
+	defer func(tw *tar.Writer) {
+		_ = tw.Close()
+	}(tw)
+
+	// Flush结束当前文件的写入。（可选的）
+	defer func(tw *tar.Writer) {
+		err = tw.Flush()
+	}(tw)
+	// Write向tar档案文件的当前记录中写入数据。
+	// 如果写入的数据总数超出上一次调用WriteHeader的参数hdr.Size字节， 返回ErrWriteTooLong错误。
+	write, err := tw.Write([]byte("sss"))
+	if err != nil {
+		return
+	}
+	fmt.Println(write)
+	// WriteHeader写入hdr并准备接受文件内容。
+	// 如果不是第一次调用本方法，会调用Flush。
+	// 在Close之后调用本方法会返回ErrWriteAfterClose
+	_ = tw.WriteHeader(header)
 }
